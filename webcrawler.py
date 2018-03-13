@@ -1,34 +1,54 @@
 import requests
 from bs4 import BeautifulSoup
+import time, urllib
+from urlparse import urljoin
 
-response = requests.get("https://en.wikipedia.org/wiki/Float_(project_management)")
+def find_first_link(url):
+	response = requests.get(url)
+	html = response.text
+	soup = BeautifulSoup(html,'html.parser')
 
-html = response.text
+	big_div = soup.find(id = "mw-content-text").find(class_="mw-parser-output")
 
-soup = BeautifulSoup(html,'html.parser')
+	first_link = None
+	for element in big_div.find_all('p',recursive=False):
+		if element.a:
+			first_link = element.a.get('href')
+			break
 
-print soup.prettify()
-# anchors = soup.find_all('a')
-# for each_element in anchors:
-#   print each_element
+	if not first_link:
+		return
 
-# for link in soup.find_all('a'):
-#   print link.get('href')
+	first_link = urljoin('https://en.wikipedia.org/',first_link)
 
-print soup.find(id = "mw-context-text").find(class_="mw-parser-output").p.a.get('href')
+	return first_link
 
-# search_history = ['https://en.wikipedia.org/wiki/Floating_point']
-# target_url = 'https://en.wikipedia.org/wiki/Philosophy'
-# if len(search_history) > 25:
-#     print False
-#     #pass
-# if search_history[-1] == target_url:
-#     print False
-#         #pass
-# visited = {}
-# for key in search_history:
-#     if not visited.get(key):
-#         visited[key] = 1
-#     else:
-#         print False
-# print True
+
+def continue_crawl(search_history, target_url):
+	if len(search_history) > 25:
+	    return False
+	    #pass
+	if search_history[-1] == target_url:
+	    return False
+	        #pass
+	visited = {}
+	for key in search_history:
+	    if not visited.get(key):
+	        visited[key] = 1
+	    else:
+	        return False
+	return True
+
+start_url = "https://en.wikipedia.org/wiki/Special:Random"
+target_url = "https://en.wikipedia.org/wiki/Philosophy"
+
+search_history = [start_url]
+
+while continue_crawl(search_history, target_url):
+	print search_history[-1]
+	first_link = find_first_link(search_history[-1])
+	if not first_link:
+		print "Ending Found but target_url not found"
+		break
+	search_history.append(first_link)
+	time.sleep(2)
